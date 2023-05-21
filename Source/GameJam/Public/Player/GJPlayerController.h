@@ -10,6 +10,7 @@
  * 
  */
 class ACameraActor;
+class AGJEventManager;
 UCLASS()
 class GAMEJAM_API AGJPlayerController : public APlayerController
 {
@@ -33,6 +34,14 @@ protected:
 	FVector RealCameraLocation;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Camera)
 		bool bCameraLocked = true;
+public:
+	UFUNCTION(BlueprintCallable)
+		void HandleEvent(int index);
+protected:
+	UPROPERTY(EditDefaultsOnly, Category = Event)
+		TSubclassOf<AGJEventManager> EventManagerClass;
+	UPROPERTY()
+		AGJEventManager* EventManager;
 
 protected:
 	void StartupWithCheckpoint();

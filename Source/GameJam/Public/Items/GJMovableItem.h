@@ -23,7 +23,10 @@ protected:
 protected:
 	UPROPERTY(VisibleAnywhere, Category = Components)
 		UProjectileMovementComponent* ProjectileMovement;
+	UFUNCTION()
+		void ItemStop(const FHitResult& ImpactResult);
 public:
+	bool bBeingCatched = false;
 	void MagicCatching_Start();
 	void MagicCatching_End();
 };

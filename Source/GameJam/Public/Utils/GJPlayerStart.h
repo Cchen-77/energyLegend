@@ -9,8 +9,11 @@
 /**
  * 
  */
+class UBoxComponent;
 UCLASS()
 class GAMEJAM_API AGJPlayerStart : public APlayerStart
 {
 	GENERATED_BODY()
+public:
+
 };

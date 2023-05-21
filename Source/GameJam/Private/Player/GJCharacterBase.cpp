@@ -6,9 +6,14 @@
 #include"PaperFlipbookComponent.h"
 #include"GameFramework/CharacterMovementComponent.h"
 #include"Items/GJMovableItem.h"
+#include"Components/WidgetComponent.h"
+#include"UI/GJDialogWidget.h"
+#include"Blueprint/WidgetBlueprintLibrary.h"
+#include"Kismet/GameplayStatics.h"
+#include"UI/GJHUD.h"
 AGJCharacterBase::AGJCharacterBase()
 {
-
+	
 }
 
 void AGJCharacterBase::Tick(float DeltaTime)
@@ -19,32 +24,34 @@ void AGJCharacterBase::Tick(float DeltaTime)
 
 	//Magic
 	if (ActionState == EActionState::STATE_Magic) {
-		FVector WorldLocation, WorldDirection;
 		auto PC = Cast<APlayerController>(GetController());
-		PC->DeprojectMousePositionToWorld(WorldLocation, WorldDirection);
-		if (CatchedItem) {
+		double temp1,temp2;
+		if (PC&&CatchedItem) {
+			FVector WorldLocation, WorldDirection;
+			//update mouse location
+			if (PC->GetMousePosition(temp1, temp2)) {
+				PC->DeprojectMousePositionToWorld(WorldLocation, WorldDirection);
+				DstCatchedItemLocationCache = CatchedItem->GetActorLocation();
+				DstCatchedItemLocationCache.X = WorldLocation.X;
+				DstCatchedItemLocationCache.Z = WorldLocation.Z;
+			}
 			FVector OldLocation = CatchedItem->GetActorLocation();
-			FVector DstLocation = CatchedItem->GetActorLocation();
-			DstLocation.X = WorldLocation.X;
-			DstLocation.Z = WorldLocation.Z;
-			DstLocation = FMath::VInterpTo(OldLocation, DstLocation, DeltaTime, CatchedItemBlendingSpeed);
+			FVector ResultLocation = FMath::VInterpTo(OldLocation, DstCatchedItemLocationCache, DeltaTime, CatchedItemBlendingSpeed);
 			FHitResult Hit;
-			CatchedItem->SetActorLocation(DstLocation, true,&Hit);
-			CUR_Enery -= MagigEnegryCostScale*DeltaTime;
+			CatchedItem->SetActorLocation(ResultLocation, true,&Hit);
 		}
 	}
 	//ABOUT ENERGY
 	float Now_Z = GetActorLocation().Z;
-	CUR_Enery -= Now_Z - Cache_Z;
+	CUR_Energy -= (Now_Z - Cache_Z)*EnergyCostScale;
 	Cache_Z = Now_Z;
 	//tricky compensate
-	if (CUR_Enery > MAX_Energy + 2) {
-		CUR_Enery = MAX_Energy + 2;
+	if (CUR_Energy > MAX_Energy + 2) {
+		CUR_Energy = MAX_Energy + 2;
 	}
-	if (CUR_Enery <= 0) {
+	if (CUR_Energy <= 0) {
 		//TODO: Player Death
-		DEBUG(TEXT("EneryZero"));
-		OnMagicEnd();
+		OnPlayerDie();
 	}
 
 }
@@ -52,9 +59,8 @@ void AGJCharacterBase::Tick(float DeltaTime)
 void AGJCharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	CUR_Enery = MAX_Energy;
 	Cache_Z = GetActorLocation().Z;
+
 }
 
 void AGJCharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -63,8 +69,18 @@ void AGJCharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	PlayerInputComponent->BindAxis(TEXT("Move"), this, &AGJCharacterBase::OnMove);
 	PlayerInputComponent->BindAction(TEXT("Jump"),IE_Pressed,this,&AGJCharacterBase::OnJump);
 	PlayerInputComponent->BindAction(TEXT("Magic"), IE_Pressed, this, &AGJCharacterBase::OnMagicStart);
-	PlayerInputComponent->BindAction(TEXT("Magic"), IE_Released, this, &AGJCharacterBase::OnMagicEnd);
 	PlayerInputComponent->BindAction(TEXT("MagicCatch"), IE_Pressed, this, &AGJCharacterBase::OnMagicCatch);
+	PlayerInputComponent->BindAction(TEXT("WantsToTrigger"), IE_Pressed, this, &AGJCharacterBase::OnWantsToTrigger);
+}
+
+void AGJCharacterBase::AddEnergy(float Amount)
+{
+	CUR_Energy = FMath::Clamp<float>(CUR_Energy + Amount, 0, MAX_Energy);
+}
+
+EActionState AGJCharacterBase::GetActionState()
+{
+	return ActionState;
 }
 
 void AGJCharacterBase::SetActionState(EActionState State)
@@ -109,16 +125,49 @@ void AGJCharacterBase::OnJump()
 	Jump();
 }
 
+void AGJCharacterBase::OnWantsToTrigger()
+{
+	if (!CanDoAction()) return;
+	SetActionState(EActionState::STATE_WantsToTrigger);
+	GetWorld()->GetTimerManager().SetTimer(WantsToTriggerTimerHandle, this, &AGJCharacterBase::OnWantsToTriggerFinish, 0.2, false);
+}
+
+void AGJCharacterBase::OnWantsToTriggerFinish()
+{
+	ClearActionState(EActionState::STATE_WantsToTrigger);
+}
+
+void AGJCharacterBase::OnPlayerDie()
+{
+	if (ActionState == EActionState::STATE_Dead) return;
+	OnMagicEnd();
+	SetActionState(EActionState::STATE_Dead);
+	if (auto PC = Cast<APlayerController>(GetController())) {
+		DisableInput(PC);
+		if (auto HUD = Cast<AGJHUD>(PC->GetHUD())) {
+			HUD->Start_TransitionOut(MainMap);
+		}
+	}
+}
+
 void AGJCharacterBase::OnMagicStart()
 {
-	SetActionState(EActionState::STATE_Magic);
-	if (auto PC = Cast<APlayerController>(GetController())) {
-		PC->SetShowMouseCursor(true);
+	if (CanDoAction()) {
+		SetActionState(EActionState::STATE_Magic);
+		if (auto PC = Cast<APlayerController>(GetController())) {
+			PC->SetShowMouseCursor(true);
+		}
+	}
+	else if (ActionState == EActionState::STATE_Magic) {
+		OnMagicEnd();
 	}
 }
 
 void AGJCharacterBase::OnMagicCatch()
 {
+	if (CUR_Energy <= MagigEnegryCost) {
+		return;
+	}
 	if (ActionState != EActionState::STATE_Magic) return;
 	if (CatchedItem) return;
 	if (auto PC = Cast<APlayerController>(GetController())) {
@@ -131,6 +180,7 @@ void AGJCharacterBase::OnMagicCatch()
 				if (auto MovableItem = Cast<AGJMovableItem>(Hit.GetActor())) {
 					CatchedItem = MovableItem;
 					CatchedItem->MagicCatching_Start();
+					CUR_Energy -= MagigEnegryCost;
 					return;
 				}
 			}
@@ -141,11 +191,14 @@ void AGJCharacterBase::OnMagicCatch()
 void AGJCharacterBase::OnMagicEnd()
 {
 	ClearActionState(EActionState::STATE_Magic);
+	if (auto PC = Cast<APlayerController>(GetController())) {
+		UWidgetBlueprintLibrary::SetFocusToGameViewport();
+		PC->SetShowMouseCursor(false);
+		PC->SetInputMode(FInputModeGameOnly());
+	}
 	if (CatchedItem) {
 		CatchedItem->MagicCatching_End();
 		CatchedItem = nullptr;
 	}
-	if (auto PC = Cast<APlayerController>(GetController())) {
-		PC->SetShowMouseCursor(false);
-	}
 }
+

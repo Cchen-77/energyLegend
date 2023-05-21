@@ -21,7 +21,14 @@ public:
 	void SetCheckpoint(FName Name);
 	UFUNCTION(BlueprintCallable)
 	FName GetCheckpoint();
+public:
+	UFUNCTION(BlueprintCallable)
+		void ResetCheckpoint();
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = Checkpoint)
 		FName CheckpointName;
+	UPROPERTY()
+		TArray<FName> Checkpoints;
+	UFUNCTION(BlueprintImplementableEvent)
+		void AddCheckpoint();
 };

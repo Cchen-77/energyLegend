@@ -5,6 +5,7 @@
 #include"Components/BoxComponent.h"
 #include"GameFramework/Character.h"
 #include"Kismet/GameplayStatics.h"
+#include"MyDebug.h"
 AGJBreakableWall::AGJBreakableWall()
 {
 	BreakChecker = CreateDefaultSubobject<UBoxComponent>("BreakChecker");

@@ -5,6 +5,7 @@
 
 AGJPausedTimerManageTicker::AGJPausedTimerManageTicker(){
 	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bTickEvenWhenPaused = true;
 }
 
 // Called when the game starts or when spawned
