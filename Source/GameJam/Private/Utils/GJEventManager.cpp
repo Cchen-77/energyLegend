@@ -6,6 +6,7 @@
 #include"NPC/GJNPCBase.h"
 #include"Player/GJCharacterBase.h"
 #include"UI/GJHUD.h"
+#include"GameFramework/CharacterMovementComponent.h"
 // Sets default values
 AGJEventManager::AGJEventManager()
 {
@@ -27,6 +28,7 @@ void AGJEventManager::StartDialog(UDataTable* Dialog)
 			HUD->Open_DialogWidget();
 		}
 		if (auto Character = Cast<AGJCharacterBase>(PC->GetPawn())) {
+			Character->GetCharacterMovement()->Velocity = FVector(0, 0, 0);
 			Character->SetActionState(EActionState::STATE_Dialog);
 		}
 	}
@@ -34,6 +36,7 @@ void AGJEventManager::StartDialog(UDataTable* Dialog)
 
 void AGJEventManager::EndDialog()
 {
+	Dialogues.Empty();
 	if (auto PC = UGameplayStatics::GetPlayerController(this, 0)) {
 		if (auto HUD = Cast<AGJHUD>(PC->GetHUD())) {
 			HUD->Close_DialogWidget();

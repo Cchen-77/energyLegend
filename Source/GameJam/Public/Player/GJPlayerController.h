@@ -40,9 +40,13 @@ public:
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = Event)
 		TSubclassOf<AGJEventManager> EventManagerClass;
+public:
 	UPROPERTY()
 		AGJEventManager* EventManager;
 
 protected:
 	void StartupWithCheckpoint();
+public:
+	UFUNCTION(BlueprintCallable,BlueprintImplementableEvent)
+		void PlaySound(FName SoundName);
 };

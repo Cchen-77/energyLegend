@@ -28,7 +28,7 @@ public:
 		void HandleEvent(int index);
 protected:
 	virtual void BeginPlay() override;
-protected:
+public:
 	
 	UPROPERTY(BlueprintReadWrite, Category = Dialog)
 		int Index = 0;

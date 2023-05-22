@@ -7,6 +7,7 @@
 #include"Kismet/GameplayStatics.h"
 #include"Player/GJPlayerController.h"
 #include"PaperFlipbookComponent.h"
+#include"Player/GJCharacterBase.h"
 AGJEventBoxTrigger::AGJEventBoxTrigger()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -42,6 +43,9 @@ void AGJEventBoxTrigger::EventTrigger(UPrimitiveComponent* OverlappedComponent, 
 	if (!bWalkingInAutoTrigger) return;
 	if (bTriggered && bOnlyTriggerOnce) return;
 	if (Cast<ACharacter>(OtherActor) == UGameplayStatics::GetPlayerCharacter(this, 0)) {
+		if (Cast<AGJCharacterBase>(OtherActor)->GetActionState() == EActionState::STATE_Dead) {
+			return;
+		}
 		if (auto PC = Cast<AGJPlayerController>(UGameplayStatics::GetPlayerController(this, 0))) {
 			bTriggered = true;
 			PC->HandleEvent(EventIndex);
