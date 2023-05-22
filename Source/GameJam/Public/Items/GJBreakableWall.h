@@ -9,6 +9,7 @@
 /**
  * 
  */
+class UPaperFlipbook;
 class UBoxComponent;
 UCLASS()
 class GAMEJAM_API AGJBreakableWall : public AGJItemBase
@@ -21,6 +22,12 @@ protected:
 protected:
 	UPROPERTY(VisibleAnywhere, Category = Components)
 		UBoxComponent* BreakChecker;
+	UPROPERTY(EditDefaultsOnly, Category = Sprite)
+		UPaperFlipbook* Breaking;
+	FTimerHandle BreakingTimer;
+	bool IsBreak = false;
+	UFUNCTION()
+		void Break();
 	UFUNCTION()
 	void CheckBreak(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, 
 		UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);

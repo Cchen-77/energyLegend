@@ -8,6 +8,7 @@
 #include"GameFramework/CharacterMovementComponent.h"
 #include"Player/GJCharacterBase.h"
 #include"MyDebug.h"
+#include"PaperFlipbookComponent.h"
 AGJSpring::AGJSpring()
 {
 	TriggerBox = CreateDefaultSubobject<UBoxComponent>("TriggerBox");
@@ -38,6 +39,7 @@ void AGJSpring::Trigger(UPrimitiveComponent* OverlappedComponent, AActor* OtherA
 		OtherCharacter->GetCharacterMovement()->Velocity = NowVelocity;
 		Cast<AGJCharacterBase>(OtherCharacter)->AddEnergy(EnergyAmount);
 		OtherCharacter->GetCharacterMovement()->AddImpulse(FVector(0, 0, SpringPower), true);
+		Sprite->SetFlipbook(Extented);
 		GetWorld()->GetTimerManager().SetTimer(SpringupTimerHandle, this, &AGJSpring::Springup, SpringupTime, false);
 	}
 }

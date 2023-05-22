@@ -24,7 +24,6 @@ void UGJGameInstance::Init()
 void UGJGameInstance::SetCheckpoint(FName Name)
 {
 	if (Checkpoints.Find(Name)==INDEX_NONE) {
-		DEBUG(Name.ToString());
 		CheckpointName = Name;
 		Checkpoints.Add(Name);
 		AddCheckpoint();

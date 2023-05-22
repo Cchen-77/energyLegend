@@ -36,6 +36,8 @@ protected:
 public:
 	UFUNCTION(BlueprintCallable)
 	void AddEnergy(float Amount);
+	UFUNCTION(BlueprintCallable)
+	void SetCurEnergy(float Amount);
 protected:
 	UPROPERTY(EditDefaultsOnly,BlueprintReadWrite, Category = Energy)
 		float MAX_Energy = 100;
@@ -48,7 +50,7 @@ protected:
 public:
 	UFUNCTION(BlueprintCallable)
 		bool CanDoAction() const;
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable,BlueprintPure)
 		EActionState GetActionState();
 	UFUNCTION(BlueprintCallable)
 		void SetActionState(EActionState State);
@@ -74,6 +76,10 @@ public:
 		void OnPlayerDie();
 	UPROPERTY(EditDefaultsOnly)
 		TSoftObjectPtr<UWorld> MainMap;
+	FTimerHandle DeadTimer;
+	void GJRestart();
+	UPROPERTY(EditDefaultsOnly, Category = Dead)
+		float DeadTime = 1.5;
 protected:
 	UFUNCTION()
 		void OnMagicStart();
@@ -88,4 +94,6 @@ protected:
 		float CatchedItemBlendingSpeed = 4;
 	UPROPERTY(EditDefaultsOnly, Category = Magic)
 		float MagigEnegryCost = 5;
+	UFUNCTION(BlueprintImplementableEvent)
+		void MagicEnegryNotEnough();
 };

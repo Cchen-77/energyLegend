@@ -9,6 +9,7 @@
 /**
  * 
  */
+class UPaperFlipbook;
 class UBoxComponent;
 UCLASS()
 class GAMEJAM_API AGJSpring : public AGJItemBase
@@ -19,6 +20,8 @@ public:
 	virtual void Tick(float DeltaTime) override;
 protected:
 	virtual void BeginPlay() override;
+	UPROPERTY(EditDefaultsOnly, Category = Sprite)
+		UPaperFlipbook* Extented;
 protected:
 	UPROPERTY(VisibleAnywhere, Category = Components)
 		UBoxComponent* TriggerBox;

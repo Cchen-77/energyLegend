@@ -11,6 +11,8 @@
 #include"Blueprint/WidgetBlueprintLibrary.h"
 #include"Kismet/GameplayStatics.h"
 #include"UI/GJHUD.h"
+#include"PaperZDAnimationComponent.h"
+#include"PaperZDAnimInstance.h"
 AGJCharacterBase::AGJCharacterBase()
 {
 	
@@ -78,6 +80,11 @@ void AGJCharacterBase::AddEnergy(float Amount)
 	CUR_Energy = FMath::Clamp<float>(CUR_Energy + Amount, 0, MAX_Energy);
 }
 
+void AGJCharacterBase::SetCurEnergy(float Amount)
+{
+	CUR_Energy = Amount;
+}
+
 EActionState AGJCharacterBase::GetActionState()
 {
 	return ActionState;
@@ -85,6 +92,9 @@ EActionState AGJCharacterBase::GetActionState()
 
 void AGJCharacterBase::SetActionState(EActionState State)
 {
+	if (State != EActionState::STATE_Magic && ActionState == EActionState::STATE_Magic) {
+		OnMagicEnd();
+	}
 	ActionState = State;
 }
 
@@ -115,7 +125,7 @@ bool AGJCharacterBase::CanDoAction() const
 
 void AGJCharacterBase::OnMove(float Amount)
 {
-	if (!CanDoAction()) return;
+	if (!CanDoAction()&&ActionState!=EActionState::STATE_Falling) return;
 	AddMovementInput(FVector(1, 0, 0), Amount);
 }
 
@@ -140,10 +150,19 @@ void AGJCharacterBase::OnWantsToTriggerFinish()
 void AGJCharacterBase::OnPlayerDie()
 {
 	if (ActionState == EActionState::STATE_Dead) return;
+	GetCharacterMovement()->Velocity = FVector(0, 0, 0);
+	GetAnimationComponent()->GetAnimInstance()->JumpToNode(TEXT("DeadJump"), TEXT("Montage"));
 	OnMagicEnd();
 	SetActionState(EActionState::STATE_Dead);
 	if (auto PC = Cast<APlayerController>(GetController())) {
 		DisableInput(PC);
+	}
+	GetWorld()->GetTimerManager().SetTimer(DeadTimer, this, &AGJCharacterBase::GJRestart, DeadTime, true);
+}
+
+void AGJCharacterBase::GJRestart()
+{
+	if (auto PC = Cast<APlayerController>(GetController())) {
 		if (auto HUD = Cast<AGJHUD>(PC->GetHUD())) {
 			HUD->Start_TransitionOut(MainMap);
 		}
@@ -153,7 +172,12 @@ void AGJCharacterBase::OnPlayerDie()
 void AGJCharacterBase::OnMagicStart()
 {
 	if (CanDoAction()) {
+		if (CUR_Energy <= MagigEnegryCost) {
+			MagicEnegryNotEnough();
+			return;
+		}
 		SetActionState(EActionState::STATE_Magic);
+		GetAnimationComponent()->GetAnimInstance()->JumpToNode(TEXT("MagicJump"), TEXT("Montage"));
 		if (auto PC = Cast<APlayerController>(GetController())) {
 			PC->SetShowMouseCursor(true);
 		}
@@ -165,8 +189,9 @@ void AGJCharacterBase::OnMagicStart()
 
 void AGJCharacterBase::OnMagicCatch()
 {
-	if (CUR_Energy <= MagigEnegryCost) {
-		return;
+	if (auto PC = Cast<APlayerController>(GetController())) {
+		UWidgetBlueprintLibrary::SetFocusToGameViewport();
+		PC->SetInputMode(FInputModeGameOnly());
 	}
 	if (ActionState != EActionState::STATE_Magic) return;
 	if (CatchedItem) return;

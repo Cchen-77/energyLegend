@@ -6,6 +6,7 @@
 #include"GameFramework/Character.h"
 #include"Kismet/GameplayStatics.h"
 #include"MyDebug.h"
+#include"PaperFlipbookComponent.h"
 AGJBreakableWall::AGJBreakableWall()
 {
 	BreakChecker = CreateDefaultSubobject<UBoxComponent>("BreakChecker");
@@ -18,15 +19,26 @@ void AGJBreakableWall::BeginPlay()
 	BreakChecker->OnComponentBeginOverlap.AddDynamic(this, &AGJBreakableWall::CheckBreak);
 }
 
-void AGJBreakableWall::CheckBreak(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+void AGJBreakableWall::Break()
 {
+	Destroy();
+}
+
+void AGJBreakableWall::CheckBreak(UPrimitiveComponent* OvserlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	if (IsBreak) return;
 	auto OtherCharacter = Cast<ACharacter>(OtherActor);
 	if (OtherCharacter == UGameplayStatics::GetPlayerCharacter(this, 0)) {
 		FVector Velocity = OtherCharacter->GetVelocity();
 		FVector WallFacingVector = GetActorForwardVector();
 		float Speed = Velocity.Dot(WallFacingVector);
 		if (Speed >= BreakingSpeed) {
-			Destroy();
+			IsBreak = true;
+			GetWorld()->GetTimerManager().SetTimer(BreakingTimer, this, &AGJBreakableWall::Break, 1, false);
+			BoxCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			Sprite->SetLooping(false);
+			Sprite->SetFlipbook(Breaking);
+			Sprite->PlayFromStart();
 		}
 	}
 }
