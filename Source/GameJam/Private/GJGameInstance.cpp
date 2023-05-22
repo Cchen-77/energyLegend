@@ -12,7 +12,7 @@ void UGJGameInstance::Init()
 	Super::Init();
 	//Default GameUserSettings
 	auto GameUserSettings = GEngine->GetGameUserSettings();
-	GameUserSettings->SetFullscreenMode(EWindowMode::Windowed);
+	GameUserSettings->SetFullscreenMode(EWindowMode::WindowedFullscreen);
 	GameUserSettings->SetFrameRateLimit(120);
 	GameUserSettings->ApplySettings(false);
 
